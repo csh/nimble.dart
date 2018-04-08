@@ -1,3 +1,10 @@
+# Don't commit the .vscode directory, except for essentials
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
 # Don’t commit the following directories created by pub.
 .buildlog
 .pub/
