@@ -16,8 +16,4 @@ class Plugin {
   void send(String channel, Map<dynamic, dynamic> payload) {
     _sender.send(channel, payload);
   }
-
-  void sendFrom(Plugin plugin, String channel, Map<dynamic, dynamic> payload) {
-    _sender.sendFrom(plugin.name, channel, payload);
-  }
 }

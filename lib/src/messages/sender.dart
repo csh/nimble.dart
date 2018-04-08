@@ -10,11 +10,6 @@ class Sender {
     _sender.send(message);
   }
 
-  void sendFrom(String sender, String channel, Map<dynamic, dynamic> payload) {
-    var message = _wrap(channel, {"sender": sender}, payload);
-    _sender.send(message);
-  }
-
   Map<String, dynamic> _wrap(String channel, Map<String, dynamic> headers,
       Map<dynamic, dynamic> payload) {
     var message = {"channel": channel, "payload": payload};
