@@ -1,11 +1,8 @@
 import 'dart:isolate';
 
+import 'package:nimble/interface.dart';
+
 void main(List<String> args, SendPort sender) {
-  var receiver = new ReceivePort();
-  receiver.listen((data) {
-    print("Plugin received message, name: ${data['name']}");
-    sender.send(true);
-  });
-  var exchange = receiver.sendPort;
-  sender.send(exchange);
+  PluginInterface iface = new PluginInterface(sender);
+  iface.send("test", {"message": "Hello World"});
 }

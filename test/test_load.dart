@@ -9,11 +9,11 @@ void main() {
     var directory = new Directory("test-plugin");
     var manager = new PluginManager();
     var plugin = await manager.load(directory);
-    var subscription = plugin.internals["subscription"] as StreamSubscription;
-    var completer = new Completer<bool>();
-    subscription.onData((message) {
-      completer.complete(message as bool);
+    var completer = new Completer<String>();
+    plugin.listen("test", (channel, data) {
+      completer.complete(data["message"]);
     });
-    expect(completer.future, completion(equals(true)));
+    expect(completer.future, completion(equals("Hello World")));
   });
 }
+ 
