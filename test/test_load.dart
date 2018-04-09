@@ -14,6 +14,7 @@ void main() {
       completer.complete(data["message"]);
     });
     expect(completer.future, completion(equals("Hello World")));
+    plugin.send("nimble:control", {"command": "terminate"});
   });
 }
  

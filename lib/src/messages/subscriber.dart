@@ -16,6 +16,7 @@ class Subscriber {
 
   void close() {
     _subscription.cancel();
+    _handlers.clear();
   }
 
   void _handle(message) {
