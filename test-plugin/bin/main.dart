@@ -1,8 +1,6 @@
-import 'dart:isolate';
-
 import 'package:nimble/interface.dart';
 
-void main(List<String> args, SendPort sender) {
-  PluginInterface iface = new PluginInterface(sender);
+void main(List<String> args, dynamic message) {
+  PluginInterface iface = new PluginInterface(message);
   iface.send("test", {"message": "Hello World"});
 }
