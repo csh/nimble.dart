@@ -1,0 +1,6 @@
+{
+    "files.exclude": {
+        "test": true,
+        "test-plugin": true,
+    }
+}

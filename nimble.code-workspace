@@ -1,0 +1,32 @@
+{
+	"folders": [
+		{
+			"path": ".",
+			"name": "Nimble Library"
+		},
+		{
+			"path": "test",
+			"name": "Nimble Library Tests"
+		},
+		{
+			"path": "test-plugin",
+			"name": "Test Plugin"
+		}
+	],
+	"settings": {
+		"files.exclude":{
+			"**/.git": true,
+			"**/.DS_Store": true,
+			"**/pubspec.lock": true,
+			"**/.packages": true,
+			"**/.pub": true,
+		},
+	},
+	"extensions": {
+		"recommendations": [
+			"Dart-Code.dart-code",
+			"wayou.vscode-todo-highlight",
+			"eamodio.gitlens"
+		]
+	}
+}
