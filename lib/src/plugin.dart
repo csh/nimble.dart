@@ -20,7 +20,7 @@ class Plugin {
     _subscriber.listen(channel, callback);
   }
 
-  void send(String channel, Map<dynamic, dynamic> payload) {
+  void send(String channel, Map<String, dynamic> payload) {
     if (!isLoaded) throw "plugin \"$name\" is no longer loaded";
     _sender.send(channel, payload);
   }
