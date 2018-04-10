@@ -2,6 +2,7 @@ import 'dart:isolate';
 
 import 'messages/subscriber.dart';
 import 'messages/sender.dart';
+import 'aliases.dart' as aliases;
 
 class PluginInterface {
   final ReceivePort _receivePort;
@@ -17,7 +18,7 @@ class PluginInterface {
     _subscriber = new Subscriber(subscription);
     _sender = new Sender(_sendPort);
 
-    listen("nimble:control", (channel, payload) {
+    listen(aliases.channelControl, (channel, payload) {
       if (payload["command"] == "terminate") {
         _subscriber.close();
         Isolate.current.kill();
@@ -31,5 +32,9 @@ class PluginInterface {
 
   void send(String channel, Map<String, dynamic> payload) {
     _sender.send(channel, payload);
+  }
+
+  void chat(String plugin, String channel, Map<String, dynamic> payload) { 
+    _sender.sendTo(plugin, aliases.channelChatter, channel, payload); 
   }
 }
