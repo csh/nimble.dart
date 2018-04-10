@@ -5,7 +5,7 @@ dart:
 dart_task:
 - test: --platform vm
 - dartanalyzer
-- dartfmt
+- dartfmt: sdk
 branches:
   only: 
   - develop
