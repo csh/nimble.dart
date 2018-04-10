@@ -100,14 +100,15 @@ class PluginManager {
   void _subscribeControlChannels(Plugin plugin) {
     void callback(String channel, Map<String, dynamic> payload) {
       switch (channel) {
-        case aliases.channelControl: 
+        case aliases.channelControl:
           _handleControlMessage(plugin, payload);
           return;
-        case aliases.channelChatter: 
+        case aliases.channelChatter:
           _handleChatterMessage(plugin, payload);
           return;
       }
     }
+
     plugin.listen(aliases.channelControl, callback);
     plugin.listen(aliases.channelChatter, callback);
   }

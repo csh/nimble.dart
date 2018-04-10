@@ -13,7 +13,8 @@ class Plugin {
   bool get isLoaded => _isLoaded;
   bool _isLoaded = true;
 
-  Plugin(this.name, this._sender, this._subscriber, this._isolate, this.internals);
+  Plugin(
+      this.name, this._sender, this._subscriber, this._isolate, this.internals);
 
   void listen(String channel, SubscriberCallback callback) {
     if (!isLoaded) throw "plugin \"$name\" is no longer loaded";

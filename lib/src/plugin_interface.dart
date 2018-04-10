@@ -11,8 +11,11 @@ class PluginInterface {
 
   Subscriber _subscriber;
   Sender _sender;
-  
-  PluginInterface(message) : name = message["name"], _sendPort = message["port"], _receivePort = new ReceivePort() {
+
+  PluginInterface(message)
+      : name = message["name"],
+        _sendPort = message["port"],
+        _receivePort = new ReceivePort() {
     var subscription = _receivePort.listen(null);
     _sendPort.send(_receivePort.sendPort);
     _subscriber = new Subscriber(subscription);
@@ -34,7 +37,7 @@ class PluginInterface {
     _sender.send(channel, payload);
   }
 
-  void chat(String plugin, String channel, Map<String, dynamic> payload) { 
-    _sender.sendTo(plugin, aliases.channelChatter, channel, payload); 
+  void chat(String plugin, String channel, Map<String, dynamic> payload) {
+    _sender.sendTo(plugin, aliases.channelChatter, channel, payload);
   }
 }
