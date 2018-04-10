@@ -1,0 +1,15 @@
+language: dart
+dart:
+- stable
+- 1.24.0
+dart_task:
+- test: --platform vm
+- dartanalyzer
+- dartfmt
+branches:
+  only: 
+  - develop
+  - /feature\..*/
+cache:
+ directories:
+   - $HOME/.pub-cache
