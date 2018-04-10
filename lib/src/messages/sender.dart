@@ -6,14 +6,11 @@ class Sender {
   Sender(this._sender);
 
   void send(String channel, Map<dynamic, dynamic> payload) {
-    var message = _wrap(channel, null, payload);
+    var message = _wrap(channel, payload);
     _sender.send(message);
   }
 
-  Map<String, dynamic> _wrap(String channel, Map<String, dynamic> headers,
-      Map<dynamic, dynamic> payload) {
-    var message = {"channel": channel, "payload": payload};
-    if (headers != null) headers.forEach(message.putIfAbsent);
-    return message;
+  Map<String, dynamic> _wrap(String channel, Map<dynamic, dynamic> payload) {
+    return {"channel": channel, "payload": payload};
   }
 }

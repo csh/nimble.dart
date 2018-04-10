@@ -1,6 +1,6 @@
 import 'dart:async';
 
-typedef void SubscriberCallback(String channel, Map<dynamic, dynamic> data);
+typedef void SubscriberCallback(String channel, Map<String, dynamic> payload);
 
 class Subscriber {
   final Map<String, SubscriberCallback> _handlers = new Map();
@@ -23,7 +23,7 @@ class Subscriber {
     var channel = message["channel"] as String;
     var handler = _handlers[channel];
     if (handler != null) {
-      var payload = message["payload"] as Map<dynamic, dynamic>;
+      var payload = message["payload"] as Map<String, dynamic>;
       handler(channel, payload);
     }
   }

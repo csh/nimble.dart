@@ -29,7 +29,7 @@ class PluginInterface {
     _subscriber.listen(channel, callback);
   }
 
-  void send(String channel, Map<dynamic, dynamic> payload) {
+  void send(String channel, Map<String, dynamic> payload) {
     _sender.send(channel, payload);
   }
 }
