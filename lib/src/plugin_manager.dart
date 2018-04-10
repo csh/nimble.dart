@@ -7,6 +7,7 @@ import 'package:yaml/yaml.dart' as Yaml;
 
 import 'messages/subscriber.dart';
 import 'messages/sender.dart';
+import 'aliases.dart' as aliases;
 import 'plugin.dart';
 
 class PluginManager {
@@ -14,26 +15,25 @@ class PluginManager {
 
   Future<List<Plugin>> loadAll(Directory directory,
       [Map<String, List<String>> pluginArgs = null]) async {
-    pluginArgs = pluginArgs != null ? pluginArgs : {};
+    pluginArgs = pluginArgs ?? {};
     var futures = new List<Future<Plugin>>();
     var entities = directory.listSync();
     entities.retainWhere((entity) => entity is Directory);
     for (var target in entities) {
       _validateDirectory(target);
       var name = await _getPluginName(target);
-      futures.add(_load(target, name, pluginArgs[name]));
+      futures.add(_load(target, name, pluginArgs[name] ?? []));
     }
     return Future.wait(futures);
   }
 
   Future<Plugin> load(Directory directory,
       [String name = null, List<String> args = null]) async {
-    args = args != null ? args : [];
     _validateDirectory(directory);
     if (name == null) {
       name = await _getPluginName(directory);
     }
-    return _load(directory, name, args);
+    return _load(directory, name, args ?? []);
   }
 
   Future<Plugin> _load(
@@ -62,16 +62,11 @@ class PluginManager {
       };
       var plugin = new Plugin(name, sender, subscriber, isolate, internals);
       _plugins[name] = plugin;
-      plugin.listen("nimble:control", (channel, payload) {
-        if (payload["status"] == "terminated") {
-          plugin.unload();
-          _plugins.remove(name);
-        }
-      });
+      _subscribeControlChannels(plugin);
       completer.complete(plugin);
     });
     isolate.addOnExitListener(receiver.sendPort, response: {
-      "channel": "nimble:control",
+      "channel": aliases.channelControl,
       "payload": {"status": "terminated"}
     });
     isolate.resume(isolate.pauseCapability);
@@ -100,5 +95,38 @@ class PluginManager {
     var file = new File(Path.join(directory.path, "pubspec.yaml"));
     var pubspec = Yaml.loadYaml(await file.readAsString());
     return pubspec["name"] as String;
+  }
+
+  void _subscribeControlChannels(Plugin plugin) {
+    void callback(String channel, Map<String, dynamic> payload) {
+      switch (channel) {
+        case aliases.channelControl: 
+          _handleControlMessage(plugin, payload);
+          return;
+        case aliases.channelChatter: 
+          _handleChatterMessage(plugin, payload);
+          return;
+      }
+    }
+    plugin.listen(aliases.channelControl, callback);
+    plugin.listen(aliases.channelChatter, callback);
+  }
+
+  void _handleControlMessage(Plugin plugin, Map<String, dynamic> payload) {
+    switch (payload["status"] as String) {
+      case "terminated":
+        plugin.unload();
+        _plugins.remove(plugin.name);
+        break;
+    }
+  }
+
+  void _handleChatterMessage(Plugin from, Map<String, dynamic> payload) {
+    var targetPluginName = payload[aliases.chatterTargetKey]["name"] as String;
+    var targetChannel = payload[aliases.chatterTargetKey]["channel"] as String;
+    var targetPlugin = _plugins[targetPluginName];
+    if (targetPlugin == null || targetChannel == null) return;
+    payload[aliases.chatterSenderKey] = from.name;
+    targetPlugin.send(targetChannel, payload);
   }
 }
