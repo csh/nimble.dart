@@ -9,8 +9,8 @@
 			"name": "Nimble Library Tests"
 		},
 		{
-			"path": "test-plugin",
-			"name": "Test Plugin"
+			"path": "test/plugins",
+			"name": "Test Plugins"
 		}
 	],
 	"settings": {

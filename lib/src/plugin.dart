@@ -2,6 +2,7 @@ import 'dart:isolate';
 
 import 'messages/subscriber.dart';
 import 'messages/sender.dart';
+import 'aliases.dart' as aliases;
 
 class Plugin {
   final Subscriber _subscriber;
@@ -28,8 +29,12 @@ class Plugin {
 
   void unload() {
     if (!isLoaded) throw "plugin \"$name\" has already been unloaded";
+    _sender.send(aliases.channelControl, {"command": "terminate"});
     _subscriber.close();
-    _isolate.kill();
     _isLoaded = false;
+  }
+
+  String toString() {
+    return "Plugin: ${name}";
   }
 }

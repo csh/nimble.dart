@@ -11,90 +11,105 @@ import 'aliases.dart' as aliases;
 import 'plugin.dart';
 
 class PluginManager {
+  static final Duration _loadTimeout = new Duration(milliseconds: 5000);
+
   final Map<String, Plugin> _plugins = new Map();
 
-  Future<List<Plugin>> loadAll(Directory directory,
-      [Map<String, List<String>> pluginArgs = null]) async {
+  List<Plugin> get plugins => new List.unmodifiable(_plugins.values);
+
+  Stream<Plugin> loadAll(Directory directory,
+      [Map<String, List<String>> pluginArgs = null]) {
     pluginArgs = pluginArgs ?? {};
-    var futures = new List<Future<Plugin>>();
-    var entities = directory.listSync();
-    entities.retainWhere((entity) => entity is Directory);
-    for (var target in entities) {
-      _validateDirectory(target);
-      var name = await _getPluginName(target);
-      futures.add(_load(target, name, pluginArgs[name] ?? []));
-    }
-    return Future.wait(futures);
+    return directory
+        .list()
+        .map((entity) => entity is! Directory ? null : entity as Directory)
+        .asyncMap((target) {
+      return _validateDirectory(target)
+          .then((_) => _getPluginName(target))
+          .then((name) => _load(target, name, pluginArgs[name]));
+    });
   }
 
   Future<Plugin> load(Directory directory,
-      [String name = null, List<String> args = null]) async {
-    _validateDirectory(directory);
-    if (name == null) {
-      name = await _getPluginName(directory);
-    }
-    return _load(directory, name, args ?? []);
+      {String name = null, List<String> args = null}) {
+    return _validateDirectory(directory).then((_) {
+      var completer = new Completer<String>();
+      name != null
+          ? completer.complete(name)
+          : _getPluginName(directory).then((name) {
+              completer.complete(name);
+              return name;
+            });
+      return completer.future;
+    }).then((name) => _load(directory, name, args));
   }
 
-  Future<Plugin> _load(
-      Directory directory, String name, List<String> args) async {
+  Future<Plugin> _load(Directory directory, String name, List<String> args) {
     if (_plugins.containsKey(name)) {
-      throw "Duplicate plugin load detected. Name: ${name}, Directory: ${directory.path}";
+      return new Future.error(
+          "Duplicate plugin load detected. Plugin: ${name}, ${directory}");
     }
+
     var receiver = new ReceivePort();
-    var completer = new Completer();
-    var isolate = await _isolate(
-        directory, args, {"name": name, "port": receiver.sendPort});
-    var timeout = new Timer(new Duration(milliseconds: 5000), () {
-      throw "Failed to initialise plugin '$name' in time";
+    var completer = new Completer<Plugin>();
+    return _isolate(
+            directory, args ?? [], {"name": name, "port": receiver.sendPort})
+        .then((Isolate isolate) {
+      isolate.addOnExitListener(receiver.sendPort, response: {
+        "channel": aliases.channelControl,
+        "payload": {"status": "terminated"}
+      });
+      var subscription = receiver.listen(null);
+      subscription.onData((SendPort contact) {
+        var subscriber = new Subscriber(subscription);
+        var sender = new Sender(contact);
+        var internals = <String, dynamic>{
+          "pluginManager": this,
+          "subscription": subscription,
+          "isolate": isolate,
+          "rp": receiver,
+          "sp": contact,
+        };
+        var plugin = new Plugin(name, sender, subscriber, isolate, internals);
+        _plugins[name] = plugin;
+        _subscribeControlChannels(plugin);
+        completer.complete(plugin);
+      });
+      isolate.resume(isolate.pauseCapability);
+      return completer.future;
+    }, onError: completer.completeError).timeout(_loadTimeout, onTimeout: () {
+      throw "Failed to initialise Plugin: ${name}, Timeout: ${_loadTimeout.inMilliseconds}ms";
     });
-    var subscription = receiver.listen(null);
-    subscription.onData((SendPort contact) {
-      timeout.cancel();
-      var subscriber = new Subscriber(subscription);
-      var sender = new Sender(contact);
-      var internals = <String, dynamic>{
-        "pluginManager": this,
-        "subscription": subscription,
-        "isolate": isolate,
-        "rp": receiver,
-        "sp": contact,
-      };
-      var plugin = new Plugin(name, sender, subscriber, isolate, internals);
-      _plugins[name] = plugin;
-      _subscribeControlChannels(plugin);
-      completer.complete(plugin);
-    });
-    isolate.addOnExitListener(receiver.sendPort, response: {
-      "channel": aliases.channelControl,
-      "payload": {"status": "terminated"}
-    });
-    isolate.resume(isolate.pauseCapability);
-    return completer.future;
   }
 
   Future<Isolate> _isolate(
       Directory directory, List<String> args, var initialMessage) {
-    var path = Path.join(directory.absolute.path, "bin", "main.dart");
-    return Isolate.spawnUri(new Uri.file(path), args, initialMessage,
+    var entryFile = new File(Path.join(directory.path, "bin", "main.dart"));
+    return Isolate.spawnUri(entryFile.absolute.uri, args, initialMessage,
         paused: true);
   }
 
-  Future _validateDirectory(Directory directory) async {
-    var file = new File(Path.join(directory.path, "pubspec.yaml"));
-    if (!await file.exists()) throw "missing pubspec.yaml";
-    file = new File(Path.join(directory.path, "bin", "plugin.dart"));
-    if (!await file.exists()) {
-      file = new File(Path.join(directory.path, "bin", "main.dart"));
-      if (!await file.exists())
-        throw "missing bin/plugin.dart or bin/main.dart";
-    }
+  Future _validateDirectory(Directory directory) {
+    return new File(Path.join(directory.path, "pubspec.yaml"))
+        .exists()
+        .then((pubspecExists) {
+      if (!pubspecExists) {
+        throw "Could not locate plugin pubspec.yaml in ${directory}";
+      }
+      return new File(Path.join(directory.path, "bin", "main.dart"))
+          .exists()
+          .then((entryPointExists) {
+        if (!entryPointExists)
+          throw "Could not locate plugin entry point in ${directory}";
+      });
+    });
   }
 
-  Future<String> _getPluginName(Directory directory) async {
+  Future<String> _getPluginName(Directory directory) {
     var file = new File(Path.join(directory.path, "pubspec.yaml"));
-    var pubspec = Yaml.loadYaml(await file.readAsString());
-    return pubspec["name"] as String;
+    return file.readAsString().then((yaml) {
+      return Yaml.loadYaml(yaml)["name"];
+    });
   }
 
   void _subscribeControlChannels(Plugin plugin) {
